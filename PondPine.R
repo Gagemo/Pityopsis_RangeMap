@@ -1,0 +1,108 @@
+#########################   Pond Pine Range Map   ##############################
+#########################  University of Florida  ##############################
+#########################       Gage LaPierre     ##############################
+#########################          2022           ##############################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+######################### Clears Environment & History  ########################
+
+rm(list=ls(all=TRUE))
+cat("\014") 
+
+#########################     Installs Packages   ##############################
+
+list.of.packages <- c("tidyverse", "sp", "rgdal", "rgdal", "rgeos", "raster", 
+                      "rgbif", "tmap", "rinat", "leaflet", "conflicted", "sf", 
+                      "rangemap", "mapview", "htmlwidgets")
+new.packages <- list.of.packages[!(list.of.packages %in% 
+                                     installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+##########################     Loads Packages     ##############################
+
+library(tidyverse)
+library(sp)
+library(rgdal)
+library(rgeos)
+library(raster)
+library(tmap)
+library(rinat)
+library(leaflet)
+library(conflicted)
+library(sf)
+library(rangemap)
+library(rgbif)
+library(mapview)
+library(htmlwidgets)
+
+################## Prevents Conflict with Functions   ##########################
+
+conflict_prefer("filter", "dplyr", quiet = TRUE)
+conflict_prefer("count", "dplyr", quiet = TRUE)
+conflict_prefer("select", "dplyr", quiet = TRUE)
+conflict_prefer("arrange", "dplyr", quiet = TRUE)
+
+############ Loads Data & Transforms Map Data to Correct Format ################
+
+FL_sf <- st_read("geojson-fl-counties-fips.json", quiet = TRUE) %>% 
+  st_transform(4326)
+
+################# Creates Bounding Box to Pull iNat Data  ######################
+
+FL_bb <- FL_sf %>% 
+  st_bbox()
+
+################ Downloads iNat data for each species ##########################
+################ Checks & prevents re download #################################
+# P. serotina
+search_P.serotina_fn <- "P.serotina_FL.Rdata"
+if (file.exists(search_P.serotina_fn)) {
+  load(search_P.serotina_fn)
+} else {  
+  inat_P.serotina_df <- get_inat_obs(bounds = FL_bb[c(2,1,4,3)], 
+                                   taxon_name = "Pinus serotina",
+                                   year = NULL,
+                                   month = NULL,
+                                   maxresults = 1000)
+  save(inat_P.serotina_df, file = search_P.serotina_fn)
+}
+
+################ Saves iNat Data into Data Frame  ##############################
+################ Selects Key Columns & Combines with Map Data ##################
+
+inat_P.serotina_pcsp_popup_sf <- inat_P.serotina_df %>% 
+  select(longitude, latitude, datetime, common_name, scientific_name, 
+         image_url, user_login) %>%
+  st_as_sf(coords=c("longitude", "latitude"), crs=4326) %>% 
+  st_intersection(FL_sf) %>% 
+  mutate(popup_html = paste0("<p><b>", common_name, "</b><br/>",
+                             "<i>", scientific_name, "</i></p>",
+                             "<p>Observed: ", datetime, "<br/>",
+                             "User: ", user_login, "</p>",
+                             "<p><img src='", image_url, 
+                             "' style='width:100%;'/></p>"))
+
+############################# Creates Map  #####################################
+
+htmltools::p("Pinus serotina in Florida", 
+             style = "font-weight:bold; font-size:110%;")
+
+P.serotina = leaflet(FL_sf, options = leafletOptions(zoomControl = FALSE)) %>% 
+  addProviderTiles("GeoportailFrance.orthos") %>% 
+  addPolygons(fill = TRUE, fillColor = "blue",color = "black", 
+              weight = 1, fillOpacity = 0.4) %>% 
+  addCircleMarkers(data = inat_P.serotina_pcsp_popup_sf,
+                   popup = ~popup_html, weight = 1, 
+                   radius = 3.5, fill = TRUE, fillColor = "#E69F00", opacity = 1,
+                   fillOpacity = 1, color = "black")%>% 
+  addLegend(opacity = 1, position = 'bottomleft', 
+            colors = c("#E69F00"),labels = c("P.serotina"),
+            title = "Research Grade iNat Observations <br> of Pinus serotina")
+P.serotina
+saveWidget(widget = P.serotina,
+           file = "P.serotina.html",
+           selfcontained = TRUE)
