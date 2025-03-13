@@ -53,10 +53,10 @@ FL_bb <- FL_sf %>%
 ################ Downloads iNat data for each species ##########################
 ################ Checks & prevents re-download #################################
 
-species_list <- c("L.aspera", "L.chapmanii", "L.elegantula", "L.garberi",
-                  "L.gholsonii", "L.laevigata", "L.ohlingerae", "L.patens",
-                  "L.pauciflora", "L.provincialis", "L.quadriflora",
-                  "L.resinosa", "L.secunda", "L.squarrulosa", "L.tenuifolia")
+species_list <- c("L.aspera", "L.chapmanii", "L.elegantula", 
+                  "L.garberi", "L.gholsonii", "L.laevigata", 
+                  "L.ohlingerae", "L.patens", "L.pauciflora", "L.provincialis", 
+                  "L.quadriflora", "L.resinosa", "L.secunda", "L.tenuifolia")
 
 for (species in species_list) {
   # Construct dynamic file name
@@ -73,10 +73,8 @@ for (species in species_list) {
     inat_df_name <- paste0("inat_", species, "_df")
     assign(inat_df_name, get_inat_obs(bounds = FL_bb[c(2,1,4,3)],
                                       taxon_name = taxon_name,
-                                      year = NULL,
-                                      month = NULL,
-                                      quality_grade = "research",
-                                      maxresults = 1000))
+                                      quality = "research",
+                                      maxresults = 100))
     
     # Save the data
     save(list = inat_df_name, file = search_fn)
@@ -91,7 +89,8 @@ for (species in species_list) {
   # Apply the operations
   assign(pcsp_popup_sf_name, 
          get(inat_df_name) %>%
-           select(longitude, latitude, datetime, common_name, scientific_name, image_url, user_login) %>%
+           select(longitude, latitude, datetime, common_name, scientific_name, 
+                  image_url, user_login) %>%
            st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>%
            st_intersection(FL_sf) %>%
            mutate(popup_html = paste0("<p><b>", common_name, "</b><br/>",
@@ -108,9 +107,11 @@ for (species in species_list) {
 species_colors <- c(
   "L.aspera" = "#E41A1C",
   "L.chapmanii" = "#377EB8",
+  "L.elegans" = "red",
   "L.elegantula" = "#4DAF4A",
   "L.garberi" = "#984EA3",
   "L.gholsonii" = "#FF7F00",
+  "L.gracilis" = "orange",
   "L.laevigata" = "#FFFF33",
   "L.ohlingerae" = "#A65628",
   "L.patens" = "#F781BF",
@@ -118,8 +119,9 @@ species_colors <- c(
   "L.provincialis" = "#B3DE69",
   "L.quadriflora" = "blue",
   "L.resinosa" = "white",
+  "L.savannesis" = "purple",
   "L.secunda" = "#9EDAE5",
-  "L.squarrulosa" = "black",
+  "L.squarrosaa" = "black",
   "L.tenuifolia" = "#1B9E77"
 )
 
