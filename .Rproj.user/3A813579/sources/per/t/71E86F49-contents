@@ -1,22 +1,17 @@
 ################################################################################
-################################################################################
 #########################   Liatris Range Map  ##################################
 ######################### University of Florida #################################
 #########################    Gage LaPierre   ####################################
 #########################     2022       ########################################
 ################################################################################
-################################################################################
 
 ######################### Clears Environment & History ########################
-
 rm(list=ls(all=TRUE))
 cat("\014")
 
 #########################   Installs Packages  ##############################
-
 list.of.packages <- c("tidyverse", "sp", "raster", "rgbif", "tmap", "rinat",
-                      "leaflet", "conflicted", "sf", "rangemap", "mapview",
-                      "htmlwidgets")
+                      "leaflet", "conflicted", "sf", "mapview", "htmlwidgets")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -34,59 +29,43 @@ library(mapview)
 library(htmlwidgets)
 
 ################## Prevents Conflict with Functions  ##########################
-
 conflict_prefer("filter", "dplyr", quiet = TRUE)
 conflict_prefer("count", "dplyr", quiet = TRUE)
 conflict_prefer("select", "dplyr", quiet = TRUE)
 conflict_prefer("arrange", "dplyr", quiet = TRUE)
 
 ############ Loads Data & Transforms Map Data to Correct Format ################
-
 FL_sf <- st_read("geojson-fl-counties-fips.json", quiet = TRUE) %>%
   st_transform(4326)
 
 ################# Creates Bounding Box to Pull iNat Data ######################
-
 FL_bb <- FL_sf %>%
   st_bbox()
 
 ################ Downloads iNat data for each species ##########################
-################ Checks & prevents re-download #################################
-
 species_list <- c("L.aspera", "L.chapmanii", "L.elegantula", 
                   "L.garberi", "L.gholsonii", "L.laevigata", 
                   "L.ohlingerae", "L.patens", "L.pauciflora", "L.provincialis", 
                   "L.quadriflora", "L.resinosa", "L.secunda", "L.tenuifolia")
 
 for (species in species_list) {
-  # Construct dynamic file name
   search_fn <- paste0(species, "_FL.Rdata")
-  
-  # Check if file exists
   if (file.exists(search_fn)) {
     load(search_fn)
   } else {
-    # Construct dynamic taxon name
-    taxon_name <- paste0("Liatris ", gsub("\\.", " ", species))  # Corrected formatting
-    
-    # Get iNaturalist observations
+    taxon_name <- paste0("Liatris ", gsub("\\.", " ", species))  # Correct formatting
     inat_df_name <- paste0("inat_", species, "_df")
     assign(inat_df_name, get_inat_obs(bounds = FL_bb[c(2,1,4,3)],
                                       taxon_name = taxon_name,
                                       quality = "research",
                                       maxresults = 100))
-    
-    # Save the data
     save(list = inat_df_name, file = search_fn)
   }
 }
 
 for (species in species_list) {
-  # Construct dynamic data frame names
   inat_df_name <- paste0("inat_", species, "_df")
   pcsp_popup_sf_name <- paste0("inat_", species, "_pcsp_popup_sf")
-  
-  # Apply the operations
   assign(pcsp_popup_sf_name, 
          get(inat_df_name) %>%
            select(longitude, latitude, datetime, common_name, scientific_name, 
@@ -103,15 +82,12 @@ for (species in species_list) {
 }
 
 ############################# Creates Map  #####################################
-# Assign colors for species
 species_colors <- c(
   "L.aspera" = "#E41A1C",
   "L.chapmanii" = "#377EB8",
-  "L.elegans" = "red",
   "L.elegantula" = "#4DAF4A",
   "L.garberi" = "#984EA3",
   "L.gholsonii" = "#FF7F00",
-  "L.gracilis" = "orange",
   "L.laevigata" = "#FFFF33",
   "L.ohlingerae" = "#A65628",
   "L.patens" = "#F781BF",
@@ -119,15 +95,13 @@ species_colors <- c(
   "L.provincialis" = "#B3DE69",
   "L.quadriflora" = "blue",
   "L.resinosa" = "white",
-  "L.savannesis" = "purple",
   "L.secunda" = "#9EDAE5",
-  "L.squarrosaa" = "black",
   "L.tenuifolia" = "#1B9E77"
 )
 
-# Initialize a Leaflet map
+# Initialize a Leaflet map with a satellite basemap layer
 Liatris_map <- leaflet() %>%
-  addTiles()  # Add a basemap layer
+  addProviderTiles(providers$Esri.WorldImagery)  # Add satellite imagery
 
 # Loop through species list and add markers with layer control
 for (species in species_list) {
@@ -143,7 +117,7 @@ for (species in species_list) {
       fillColor = species_colors[[species]] %||% "#000000",
       fillOpacity = 1,
       popup = ~popup_html,
-      group = species  # Remove "Observations"
+      group = species
     )
 }
 
@@ -157,7 +131,7 @@ Liatris_map <- Liatris_map %>%
 # Add a manual color legend to the bottom left
 Liatris_map <- Liatris_map %>%
   addLegend(
-    position = "bottomleft",  # Change position from "bottomright" to "bottomleft"
+    position = "bottomleft",
     title = "Liatris Species",
     colors = species_colors[species_list],  
     labels = gsub("\\.", " ", species_list),  
@@ -167,8 +141,7 @@ Liatris_map <- Liatris_map %>%
 # Display the map
 Liatris_map
 
-
 # Save the interactive map
 saveWidget(widget = Liatris_map, 
-           file = "Liatris.html",
+           file = "Liatris_Satellite_Map.html",
            selfcontained = TRUE)

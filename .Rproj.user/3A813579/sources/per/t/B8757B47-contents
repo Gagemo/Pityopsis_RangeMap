@@ -1,9 +1,19 @@
+
+
 #########################   Installs Packages  ##############################
 
-list.of.packages <- c("rgbif", "leaflet", "dplyr", "sf", "spocc", "remotes", "rangemap")
+list.of.packages <- c("rgbif", "leaflet", "dplyr", "sf", "spocc", "remotes", 
+                      "rangemap", "maptools", "maps", "raster")
 new.packages <- list.of.packages[!(list.of.packages %in%
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
+
+if(!require(remotes)){
+  install.packages("remotes")
+}
+remotes::install_github("marlonecobos/rangemap")
+
+install.packages("rangemap", repos = "https://cran.r-project.org/src/contrib/Archive/rangemap/")
 
 ##########################   Loads Packages   ##############################
 
@@ -13,11 +23,9 @@ library(dplyr)
 library(sf)
 library(spocc)
 library(remotes)
-library(rangemap)
-
-# Ensure rangemap is installed
-remotes::install_github("mauricerangel/rangemap")
-
+library(raster)
+library(maps)
+library(maptools)
 library(rangemap)
 
 # Define species list
